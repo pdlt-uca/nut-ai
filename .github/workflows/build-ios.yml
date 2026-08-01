@@ -1,0 +1,53 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.19
+
+      - name: Install dependencies and build data
+        run: |
+          npm install
+          npm run data:build
+
+      - name: Prebuild native iOS project
+        run: |
+          cd apps/mobile
+          npm install
+          npm run prebuild
+
+      - name: Build Archive without Signing
+        run: |
+          cd apps/mobile/ios
+          xcodebuild -workspace NutAI.xcworkspace \
+                     -scheme NutAI \
+                     -configuration Release \
+                     -sdk iphoneos \
+                     -derivedDataPath build \
+                     CODE_SIGN_IDENTITY="" \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO \
+                     ACTION=build
+
+      - name: Create IPA Package
+        run: |
+          cd apps/mobile/ios/build/Build/Products/Release-iphoneos
+          mkdir Payload
+          mv NutAI.app Payload/
+          zip -r NutAI.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NutAI-iOS-App
+          path: apps/mobile/ios/build/Build/Products/Release-iphoneos/NutAI.ipa
