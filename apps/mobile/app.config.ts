@@ -1,3 +1,5 @@
+import withAndroidNoCompressDb from './plugins/withAndroidNoCompressDb'
+
 import type { ExpoConfig } from 'expo/config'
 
 /**
