@@ -17,6 +17,7 @@ import { createInterface } from 'node:readline'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createGunzip } from 'node:zlib'
+import { Readable } from 'node:stream'
 import { mkdir, readFile } from 'node:fs/promises'
 import Database from 'better-sqlite3'
 
@@ -72,7 +73,7 @@ async function main() {
   if (!res.ok || !res.body) throw new Error(`download failed: HTTP ${res.status}`)
 
   const rl = createInterface({
-    input: res.body.pipe(createGunzip()),
+    input: Readable.fromWeb(res.body).pipe(createGunzip()),
     crlfDelay: Infinity,
   })
 
