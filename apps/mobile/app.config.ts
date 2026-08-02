@@ -56,11 +56,12 @@ const config: ExpoConfig = {
     blockedPermissions: ['android.permission.RECORD_AUDIO'],
   },
 
-  plugins: [
+plugins: [
     'expo-router',
     ['expo-camera', { cameraPermission: 'Nut AI uses your camera to photograph meals and scan barcodes.' }],
     'expo-secure-store',
     'expo-sqlite',
+    withAndroidNoCompressDb,
     [
       '@kingstinct/react-native-healthkit',
       {
