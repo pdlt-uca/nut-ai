@@ -24,7 +24,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-- name: Install dependencies
+      - name: Install dependencies
         run: npm install
 
       - name: Build Spain nutrition corpus from Open Food Facts
