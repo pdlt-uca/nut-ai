@@ -24,20 +24,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Download USDA nutrition datasets
-        run: |
-          mkdir -p /tmp/fdc
-          cd /tmp/fdc
-          curl -L -o foundation.zip "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_foundation_food_csv_2025-04-24.zip"
-          curl -L -o sr_legacy.zip "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_csv_2018-04.zip"
-          unzip -o foundation.zip -d .
-          unzip -o sr_legacy.zip -d .
-          ls -la /tmp/fdc
+- name: Install dependencies
+        run: npm install
 
-      - name: Install dependencies and build data
-        run: |
-          npm install
-          npm run data:build
+      - name: Build Spain nutrition corpus from Open Food Facts
+        run: node tools/nutrition-data/src/build-off-spain.mjs
 
       - name: Prebuild native Android project
         run: |
