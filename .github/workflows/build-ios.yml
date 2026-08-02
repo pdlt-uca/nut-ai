@@ -15,6 +15,16 @@ jobs:
         with:
           node-version: 20.19
 
+      - name: Download USDA nutrition datasets
+        run: |
+          mkdir -p /tmp/fdc
+          cd /tmp/fdc
+          curl -L -o foundation.zip "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_foundation_food_csv_2025-04-24.zip"
+          curl -L -o sr_legacy.zip "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_csv_2018-04.zip"
+          unzip -o foundation.zip -d .
+          unzip -o sr_legacy.zip -d .
+          ls -la /tmp/fdc
+
       - name: Install dependencies and build data
         run: |
           npm install
