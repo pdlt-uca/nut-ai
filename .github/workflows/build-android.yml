@@ -1,8 +1,6 @@
 name: Build Android APK
-
 on:
   workflow_dispatch:
-
 jobs:
   build-android:
     runs-on: ubuntu-latest
@@ -29,7 +27,7 @@ jobs:
 
       - name: Download and pre-filter Open Food Facts (Spain only)
         run: |
-          curl -sL "https://static.openfoodfacts.org/data/en.openfoodfacts.org.products.csv.gz" \
+          curl -sfL "https://static.openfoodfacts.org/data/en.openfoodfacts.org.products.csv.gz" \
             | zcat \
             | awk -F'\t' '
                 NR==1 {
@@ -39,8 +37,13 @@ jobs:
                 }
                 col && $col ~ /en:spain/ { print }
               ' > /tmp/off_spain.tsv
-          echo "Filtered rows:"
-          wc -l /tmp/off_spain.tsv
+
+          COUNT=$(wc -l < /tmp/off_spain.tsv)
+          echo "Filtered rows: $COUNT"
+          if [ "$COUNT" -lt 1000 ]; then
+            echo "ERROR: solo se filtraron $COUNT líneas — algo falló en el filtrado por país" >&2
+            exit 1
+          fi
 
       - name: Build Spain nutrition corpus from Open Food Facts
         run: node tools/nutrition-data/src/build-off-spain.mjs
