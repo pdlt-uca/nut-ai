@@ -27,8 +27,25 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Download and pre-filter Open Food Facts (Spain only)
+        run: |
+          curl -sL "https://static.openfoodfacts.org/data/en.openfoodfacts.org.products.csv.gz" \
+            | zcat \
+            | awk -F'\t' '
+                NR==1 {
+                  for (i=1;i<=NF;i++) if ($i=="countries_tags") col=i
+                  print
+                  next
+                }
+                col && $col ~ /en:spain/ { print }
+              ' > /tmp/off_spain.tsv
+          echo "Filtered rows:"
+          wc -l /tmp/off_spain.tsv
+
       - name: Build Spain nutrition corpus from Open Food Facts
         run: node tools/nutrition-data/src/build-off-spain.mjs
+        env:
+          OFF_TSV_PATH: /tmp/off_spain.tsv
 
       - name: Prebuild native Android project
         run: |
