@@ -1,0 +1,69 @@
+name: Build Android Dev Client (Fast Testing)
+on:
+  workflow_dispatch:
+jobs:
+  build-android-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: Setup Java / JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Download and pre-filter Open Food Facts (Spain only)
+        run: |
+          curl -sfL "https://static.openfoodfacts.org/data/en.openfoodfacts.org.products.csv.gz" \
+            | zcat \
+            | awk -F'\t' '
+                NR==1 {
+                  for (i=1;i<=NF;i++) if ($i=="countries_tags") col=i
+                  print
+                  next
+                }
+                col && $col ~ /en:spain/ { print }
+              ' > /tmp/off_spain.tsv
+
+          COUNT=$(wc -l < /tmp/off_spain.tsv)
+          echo "Filtered rows: $COUNT"
+          if [ "$COUNT" -lt 1000 ]; then
+            echo "ERROR: solo se filtraron $COUNT líneas — algo falló en el filtrado por país" >&2
+            exit 1
+          fi
+
+      - name: Build Spain nutrition corpus from Open Food Facts
+        run: node tools/nutrition-data/src/build-off-spain.mjs
+        env:
+          OFF_TSV_PATH: /tmp/off_spain.tsv
+
+      - name: Prebuild native Android project
+        run: |
+          cd apps/mobile
+          npm install
+          npm run prebuild
+
+      - name: Build Android Debug APK (Dev Client)
+        run: |
+          cd apps/mobile/android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NutAI-DevClient-Android-APK
+          path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
