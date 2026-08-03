@@ -2,6 +2,7 @@ import { router } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -153,10 +154,16 @@ function IntensityScreen({ exercise, onBack }: { exercise: ExerciseKind; onBack:
   async function save() {
     if (!valid || saving) return
     setSaving(true)
-    const kg = await latestWeightKg()
-    const kcal = exerciseKcal(exercise, level, kg, mins)
-    await saveEntry(`${KIND_META[exercise].title} — ${level}, ${mins} min`, kcal)
-    router.back()
+    try {
+      const kg = await latestWeightKg()
+      const kcal = exerciseKcal(exercise, level, kg, mins)
+      await saveEntry(`${KIND_META[exercise].title} — ${level}, ${mins} min`, kcal)
+      router.back()
+    } catch (e) {
+      Alert.alert('No se pudo guardar', 'Hubo un error al guardar el ejercicio. Inténtalo de nuevo.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -363,8 +370,14 @@ function ManualScreen({ onBack }: { onBack: () => void }) {
   async function add() {
     if (!valid || saving) return
     setSaving(true)
-    await saveEntry(name.trim() || 'Workout', n)
-    router.back()
+    try {
+      await saveEntry(name.trim() || 'Workout', n)
+      router.back()
+    } catch (e) {
+      Alert.alert('No se pudo guardar', 'Hubo un error al guardar el ejercicio. Inténtalo de nuevo.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

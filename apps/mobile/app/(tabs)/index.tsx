@@ -1,6 +1,7 @@
 import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,7 @@ import { Icon, type IconName } from '../../src/components/Icon'
 import {
   currentGoal,
   dayTotals,
+  db,
   localDate,
   runAdaptive,
   type AdaptiveOutcome,
@@ -51,6 +53,7 @@ export default function Home() {
   const [adaptive, setAdaptive] = useState<AdaptiveOutcome | null>(null)
   const [offset, setOffset] = useState(0)
   const [page, setPage] = useState(0)
+  const [waterMl, setWaterMl] = useState(0)
 
   const selected = useMemo(() => Date.now() + offset * 86_400_000, [offset])
 
@@ -61,17 +64,48 @@ export default function Home() {
         // The adaptive loop runs BEFORE reading the goal, so a target it just
         // changed is the one rendered. Its own gates decide whether it may act.
         const outcome = await runAdaptive(Date.now())
-        const [g, t] = await Promise.all([currentGoal(), dayTotals(localDate(selected))])
+        const dateStr = localDate(selected)
+        const [g, t] = await Promise.all([currentGoal(), dayTotals(dateStr)])
+        // Load water total for the day
+        const h = await db()
+        const wRow = await h.get<{ total: number | null }>(
+          'SELECT SUM(ml) AS total FROM water_entries WHERE local_date = ?',
+          [dateStr],
+        )
         if (!alive) return
         setAdaptive(outcome)
         setGoal(g)
         setTotals(t)
+        setWaterMl(wRow?.total ?? 0)
       })()
       return () => {
         alive = false
       }
     }, [selected]),
   )
+
+  async function logWater(ml: number) {
+    const h = await db()
+    const now = Date.now()
+    await h.run(
+      'INSERT INTO water_entries (local_date, ml, logged_at) VALUES (?, ?, ?)',
+      [localDate(now), ml, now],
+    )
+    setWaterMl((prev) => prev + ml)
+  }
+
+  function promptLogWater() {
+    Alert.alert(
+      'Registrar agua',
+      '¿Cuánta agua has tomado?',
+      [
+        { text: '200 ml', onPress: () => void logWater(200) },
+        { text: '350 ml', onPress: () => void logWater(350) },
+        { text: '500 ml', onPress: () => void logWater(500) },
+        { text: 'Cancelar', style: 'cancel' },
+      ],
+    )
+  }
 
   if (!goal || !totals) {
     return (
@@ -144,9 +178,9 @@ export default function Home() {
         {/* Page 2 — micros and the health score */}
         <View style={{ width, paddingHorizontal: space.lg }}>
           <View style={styles.macroRow}>
-            <MacroCard label="Fiber" icon="fiber" eaten={0} target={30} color="#8B7BD8" unit="g" />
-            <MacroCard label="Sugar" icon="sugar" eaten={0} target={50} color="#E88BA8" unit="g" />
-            <MacroCard label="Sodium" icon="sodium" eaten={0} target={2300} color="#D6A648" unit="mg" />
+            <MacroCard label="Fibra" icon="fiber" eaten={Math.round(totals.fiber_g)} target={30} color="#8B7BD8" unit="g" />
+            <MacroCard label="Azúcar" icon="sugar" eaten={Math.round(totals.sugar_g)} target={50} color="#E88BA8" unit="g" />
+            <MacroCard label="Sodio" icon="sodium" eaten={Math.round(totals.sodium_mg)} target={2300} color="#D6A648" unit="mg" />
           </View>
 
           <View style={[styles.card, { backgroundColor: theme.bgElevated, borderColor: theme.border }]}>
@@ -203,12 +237,16 @@ export default function Home() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
                 <Icon name="water" size={22} color={theme.protein} />
                 <View>
-                  <Text style={[type.caption, { color: theme.textMuted }]}>Water</Text>
-                  <Text style={[type.bodyStrong, { color: theme.text }]}>0 fl oz</Text>
+                  <Text style={[type.caption, { color: theme.textMuted }]}>Agua</Text>
+                  <Text style={[type.bodyStrong, { color: theme.text }]}>
+                    {waterMl >= 1000
+                      ? `${(waterMl / 1000).toFixed(1)} L`
+                      : `${Math.round(waterMl)} ml`}
+                  </Text>
                 </View>
               </View>
-              <Pressable style={[styles.ghost, { borderColor: theme.border }]}>
-                <Text style={[type.label, { color: theme.text }]}>Log Water</Text>
+              <Pressable onPress={promptLogWater} style={[styles.ghost, { borderColor: theme.border }]}>
+                <Text style={[type.label, { color: theme.text }]}>Añadir</Text>
               </Pressable>
             </View>
           </View>

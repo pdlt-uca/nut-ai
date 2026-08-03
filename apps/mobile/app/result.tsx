@@ -199,13 +199,16 @@ export default function Result() {
                   {item && <ConfidenceChip value={(row.nutrientSnapshot.kcal * row.grams) / 100} band={item.band} />}
                 </View>
 
-                <TextInput
-                  accessibilityLabel={`Grams of ${row.displayName}`}
-                  keyboardType="numeric"
-                  defaultValue={String(Math.round(row.grams))}
-                  onChangeText={(t) => editGrams(row.id, Number(t))}
-                  style={[styles.gramInput, { color: theme.text, borderColor: theme.border }]}
-                />
+                <View style={styles.gramInputRow}>
+                  <TextInput
+                    accessibilityLabel={`Grams of ${row.displayName}`}
+                    keyboardType="numeric"
+                    defaultValue={String(Math.round(row.grams))}
+                    onChangeText={(t) => editGrams(row.id, Number(t))}
+                    style={[styles.gramInput, { color: theme.text, borderColor: theme.border }]}
+                  />
+                  <Text style={[type.caption, { color: theme.textMuted }]}>g</Text>
+                </View>
 
                 <Pressable
                   accessibilityRole="button"
@@ -561,6 +564,11 @@ const styles = StyleSheet.create({
     gap: space.md,
     paddingVertical: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  gramInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   gramInput: {
     width: 64,
