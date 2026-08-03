@@ -376,6 +376,39 @@ function readyFromRows(
   setPhase({ kind: 'ready', photoUri, result, bands, meta: null, webLookups })
 }
 
+export function startManualFood(food: BarcodeFoodRow): void {
+  setPhase({ kind: 'analyzing', photoUri: '', stage: 'matching' })
+  const grams = food.serving_size_g ?? 100
+  readyFromRows(
+    [
+      {
+        id: `row_${Date.now()}`,
+        displayName: food.name,
+        sourceFoodId: String(food.id),
+        grams,
+        nutrientSnapshot: {
+          kcal: food.energy_kcal ?? 0,
+          protein_g: food.protein_g ?? 0,
+          fat_g: food.fat_g ?? 0,
+          carbs_g: food.carb_g ?? 0,
+          fiber_g: food.fiber_g,
+          sugar_g: food.sugar_g,
+          sodium_mg: food.sodium_mg,
+        },
+        origin: 'corpus',
+        gramPathway: 'packaged_exact',
+        bandHalfPct: 0.05,
+        isEstimate: false,
+        assumptions: [],
+      },
+    ],
+    null,
+    'manual-search',
+    null,
+  )
+}
+
+
 interface BarcodeFoodRow {
   id: number
   name: string

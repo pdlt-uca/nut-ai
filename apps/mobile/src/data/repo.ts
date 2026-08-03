@@ -502,3 +502,64 @@ export async function runAdaptive(now: number): Promise<AdaptiveOutcome> {
     explanation: result.explanation,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Meal history
+// ---------------------------------------------------------------------------
+
+export interface MealSummary {
+  id: number
+  slot: string
+  loggedAt: number
+  photoUri: string | null
+  kcal: number
+  protein_g: number
+  ingredientCount: number
+  firstIngredient: string
+}
+
+/**
+ * Meals logged on a given day, newest first, with their calorie totals.
+ * Only 'complete' and 'manual' meals are shown (no drafts, no pending).
+ */
+export async function mealHistory(date: string): Promise<MealSummary[]> {
+  const h = await db()
+  const rows = await h.all<{
+    id: number
+    meal_slot: string | null
+    logged_at: number
+    photo_uri: string | null
+    kcal: number | null
+    protein_g: number | null
+    ingredient_count: number | null
+    first_ingredient: string | null
+  }>(
+    `SELECT
+       m.id,
+       m.meal_slot,
+       m.logged_at,
+       m.photo_uri,
+       SUM(li.snap_energy_kcal * li.grams / 100.0 * m.portion_eaten_fraction) AS kcal,
+       SUM(li.snap_protein_g   * li.grams / 100.0 * m.portion_eaten_fraction) AS protein_g,
+       COUNT(li.id)                                                             AS ingredient_count,
+       MIN(li.display_name)                                                     AS first_ingredient
+     FROM meals m
+     LEFT JOIN log_items li ON li.meal_id = m.id
+     WHERE m.local_date = ? AND m.analysis_status IN ('complete','manual')
+     GROUP BY m.id
+     ORDER BY m.logged_at DESC`,
+    [date],
+  )
+  return rows.map((r) => ({
+    id: r.id,
+    slot: r.meal_slot ?? 'snack',
+    loggedAt: r.logged_at,
+    photoUri: r.photo_uri,
+    kcal: Math.round(r.kcal ?? 0),
+    protein_g: Math.round(r.protein_g ?? 0),
+    ingredientCount: r.ingredient_count ?? 0,
+    firstIngredient: r.first_ingredient ?? 'Meal',
+  }))
+}
+
+

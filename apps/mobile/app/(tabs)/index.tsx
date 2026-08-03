@@ -306,16 +306,22 @@ export default function Home() {
             </Text>
           </View>
         ) : (
-          <View style={[styles.card, { backgroundColor: theme.bgSunken, borderColor: 'transparent' }]}>
-            <Text style={[type.bodyStrong, { color: theme.text }]}>
-              {totals.mealCount} {totals.mealCount === 1 ? 'meal' : 'meals'} logged
-            </Text>
-            {totals.pendingCount > 0 ? (
-              <Text style={[type.caption, { color: theme.uncertain, marginTop: space.xs }]}>
-                +{totals.pendingCount} still analyzing — not counted yet
+          <Pressable
+            onPress={() => router.push({ pathname: '/meal-history', params: { date: localDate(selected) } })}
+            style={[styles.card, { backgroundColor: theme.bgSunken, borderColor: 'transparent', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+          >
+            <View>
+              <Text style={[type.bodyStrong, { color: theme.text }]}>
+                {totals.mealCount} {totals.mealCount === 1 ? 'meal' : 'meals'} logged
               </Text>
-            ) : null}
-          </View>
+              {totals.pendingCount > 0 ? (
+                <Text style={[type.caption, { color: theme.uncertain, marginTop: space.xs }]}>
+                  +{totals.pendingCount} still analyzing — not counted yet
+                </Text>
+              ) : null}
+            </View>
+            <Icon name="chevronRight" size={20} color={theme.textMuted} />
+          </Pressable>
         )}
       </View>
     </ScrollView>

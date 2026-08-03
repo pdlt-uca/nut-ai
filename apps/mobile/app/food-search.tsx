@@ -116,17 +116,24 @@ export default function FoodSearch() {
             styles.row, 
             { 
               borderColor: theme.border,
-              opacity: pressed ? 0.5 : 1 // Añade un pequeño efecto visual al pulsar
+              opacity: pressed ? 0.5 : 1
             }
           ]}
           onPress={() => {
-            // Navega a la pantalla de resultado pasándole el ID del alimento.
-            // *Nota:* Si tu pantalla de resultado espera el parámetro con otro nombre 
-            // (ej: 'id' en lugar de 'foodId'), deberás ajustarlo aquí.
-            router.push({
-              pathname: '/result',
-              params: { foodId: r.foodId }
-            })
+            if (!db) return
+            void (async () => {
+              const food = await db.get<any>(
+                `SELECT id, name, serving_size_g, energy_kcal, protein_g, fat_g, carb_g, fiber_g, sugar_g, sodium_mg
+                 FROM foods WHERE id = ?`,
+                [r.foodId]
+              )
+              if (food) {
+                // We use dynamic import so we don't bring the whole orchestrator into UI on load
+                const { startManualFood } = await import('../src/scan/orchestrator')
+                startManualFood(food)
+                router.push('/result')
+              }
+            })()
           }}
         >
           <View style={{ flex: 1 }}>
