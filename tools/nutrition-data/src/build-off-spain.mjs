@@ -16,15 +16,14 @@
 import { createInterface } from 'node:readline'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createGunzip } from 'node:zlib'
-import { Readable } from 'node:stream'
+import { createReadStream } from 'node:fs'
 import { mkdir, readFile } from 'node:fs/promises'
 import Database from 'better-sqlite3'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO = join(HERE, '../../..')
 const OUT = process.env.OUT ?? join(REPO, 'apps/mobile/assets/nutrition.db')
-const SOURCE_URL = 'https://static.openfoodfacts.org/data/en.openfoodfacts.org.products.csv.gz'
+const TSV_PATH = process.env.OFF_TSV_PATH ?? '/tmp/off_spain.tsv'
 
 const REQUIRED_COLUMNS = [
   'code', 'product_name', 'brands', 'stores', 'categories_tags', 'countries_tags',
@@ -67,13 +66,10 @@ function gramsFromServingSize(s) {
 
 async function main() {
   console.log('nutai-nutrition-data — building the OFF Spain tier\n')
-  console.log(`Streaming ${SOURCE_URL}`)
-
-  const res = await fetch(SOURCE_URL)
-  if (!res.ok || !res.body) throw new Error(`download failed: HTTP ${res.status}`)
+  console.log(`Reading pre-filtered file ${TSV_PATH}`)
 
   const rl = createInterface({
-    input: Readable.fromWeb(res.body).pipe(createGunzip()),
+    input: createReadStream(TSV_PATH),
     crlfDelay: Infinity,
   })
 
@@ -100,9 +96,6 @@ async function main() {
       }
       continue
     }
-
-    const countries = cells[colIndex['countries_tags']] ?? ''
-    if (!countries.split(',').map((t) => t.trim()).includes('en:spain')) continue
 
     const c = (name) => cells[colIndex[name]] ?? ''
     const barcode = c('code').trim()
