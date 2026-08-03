@@ -110,7 +110,25 @@ export default function FoodSearch() {
       )}
 
       {results.map((r) => (
-        <View key={r.foodId} style={[styles.row, { borderColor: theme.border }]}>
+        <Pressable 
+          key={r.foodId} 
+          style={({ pressed }) => [
+            styles.row, 
+            { 
+              borderColor: theme.border,
+              opacity: pressed ? 0.5 : 1 // Añade un pequeño efecto visual al pulsar
+            }
+          ]}
+          onPress={() => {
+            // Navega a la pantalla de resultado pasándole el ID del alimento.
+            // *Nota:* Si tu pantalla de resultado espera el parámetro con otro nombre 
+            // (ej: 'id' en lugar de 'foodId'), deberás ajustarlo aquí.
+            router.push({
+              pathname: '/result',
+              params: { foodId: r.foodId }
+            })
+          }}
+        >
           <View style={{ flex: 1 }}>
             <Text style={[type.body, { color: theme.text }]} numberOfLines={2}>{r.name}</Text>
             <Text style={[type.caption, { color: theme.textMuted, marginTop: 2 }]}>
@@ -119,7 +137,7 @@ export default function FoodSearch() {
             </Text>
           </View>
           <Text style={[type.micro, { color: theme.textFaint }]}>{r.score.toFixed(2)}</Text>
-        </View>
+        </Pressable>
       ))}
 
       {query.trim().length >= 2 && !busy && results.length === 0 && (
