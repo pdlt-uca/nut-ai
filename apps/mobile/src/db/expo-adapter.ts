@@ -75,14 +75,19 @@ export async function openNutritionDb(): Promise<DbAdapter> {
     try {
       await SQLite.importDatabaseFromAssetAsync('nutrition.db', {
         assetId: require('../../assets/nutrition.db'),
-        // Idempotent by name. Re-copying 4.7 MB on every cold start would be a
-        // visible delay for nothing.
+        // Idempotent by name. Re-copying on every cold start would be a visible delay.
         forceOverwrite: false,
       })
-    } catch {
-      // Already imported by a previous launch — the common path.
+      
+      // Solo marcamos como importado si la promesa se resuelve correctamente
+      nutritionImported = true
+    } catch (error) {
+      console.error('[DB] Error crítico al importar nutrition.db desde los assets:', error)
+      
+      // No silenciamos el error. Lo relanzamos para que el fallo sea evidente 
+      // y la app no intente operar sobre una base de datos corrupta o inexistente.
+      throw new Error(`Fallo en la importación de la base de datos: ${error instanceof Error ? error.message : String(error)}`)
     }
-    nutritionImported = true
   }
 
   const db = await SQLite.openDatabaseAsync('nutrition.db')
